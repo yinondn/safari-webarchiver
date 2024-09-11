@@ -1,3 +1,5 @@
 *.pyc
 *.webarchive
 save_safari_webarchive
+run.sh
+
