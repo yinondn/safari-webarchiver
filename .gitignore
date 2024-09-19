@@ -2,4 +2,5 @@
 *.webarchive
 save_safari_webarchive
 run.sh
-
+pages
+.DS_Store

@@ -1,7 +1,7 @@
 #!/usr/bin/env swift
 import Foundation
 
-let SCRIPT_VERSION = "5.2.5"
+let SCRIPT_VERSION = "5.2.6"
 
 // MARK: - Utility Functions
 
@@ -34,15 +34,15 @@ func getAuthenticatedContent(url: String, retries: Int = 3) -> String? {
     for attempt in 1...retries {
         let script = """
         tell application "Safari"
-            set currentTab to current tab of front window
-            set currentURL to URL of currentTab
-            set URL of currentTab to "\(url)"
+            if not (exists document 1) then
+                make new document
+            end if
+            set crawlerTab to tab 1 of window 1
+            set URL of crawlerTab to "\(url)"
             delay 5 -- Wait for page to load
             -- Capture page content
             try
-                set pageContent to do JavaScript "document.documentElement.outerHTML" in currentTab
-                -- Return to original URL
-                set URL of currentTab to currentURL
+                set pageContent to do JavaScript "document.documentElement.outerHTML" in crawlerTab
                 return pageContent
             on error errMsg
                 log "Error on attempt \(attempt): " & errMsg
@@ -125,6 +125,17 @@ class Crawler {
     }
     
     func crawl() {
+        // Create a dedicated tab for crawling
+        let createTabScript = """
+        tell application "Safari"
+            if not (exists document 1) then
+                make new document
+            end if
+            set URL of tab 1 of window 1 to "about:blank"
+        end tell
+        """
+        runAppleScript(createTabScript)
+        
         while !urlsToVisit.isEmpty {
             let url = urlsToVisit.removeFirst()
             let normalizedURL = normalizeURL(url)
@@ -160,6 +171,14 @@ class Crawler {
                 Thread.sleep(forTimeInterval: delay)
             }
         }
+        
+        // Close the dedicated tab after crawling is complete
+        let closeTabScript = """
+        tell application "Safari"
+            close tab 1 of window 1
+        end tell
+        """
+        runAppleScript(closeTabScript)
     }
     
     func normalizeURL(_ url: String) -> String {
